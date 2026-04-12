@@ -1,0 +1,19 @@
+# binary
+/bin/
+/dist/
+
+# env
+.env
+
+# logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go build cache
+*.exe
+*.out
+*.test
+vendor/
