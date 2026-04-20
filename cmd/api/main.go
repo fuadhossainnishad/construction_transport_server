@@ -24,7 +24,7 @@ func main() {
 	log.Println("🚀 Server Started Successfully on port", port)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello kitty!")
+		fmt.Fprintf(w, "Hello brother!")
 	})
 
 	log.Fatal(http.ListenAndServe(":"+port, nil))
