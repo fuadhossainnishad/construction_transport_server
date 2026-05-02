@@ -6,4 +6,5 @@ type DBConfig struct {
 	User     string
 	Password string
 	DBName   string
+	SSLMode   string
 }

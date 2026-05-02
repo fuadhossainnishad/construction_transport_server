@@ -2,9 +2,10 @@ package config
 
 import (
 	"construction_transport_server/pkg/utils"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -28,6 +29,7 @@ func LoadConfig() *Config {
 			User:     os.Getenv("DB_USER"),
 			Password: os.Getenv("DB_PASSWORD"),
 			DBName:   os.Getenv("DB_NAME"),
+			SSLMode:  os.Getenv("DB_SSLMODE"),
 		},
 	}
 }
