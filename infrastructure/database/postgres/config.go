@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"construction_transport_server/config"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -19,7 +20,7 @@ func BuildPoolConfig(cfg config.DBConfig) (*pgxpool.Config, error) {
 		cfg.DBName,
 		cfg.SSLMode,
 	)
-
+	fmt.Println("DB_NAME =", cfg.DBName)
 	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)

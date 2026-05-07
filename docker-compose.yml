@@ -11,8 +11,12 @@ services:
     env_file:
       - .env
     depends_on:
-      - redis
-      - postgres
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     volumes:
       - .:/app
     working_dir: /app
@@ -23,7 +27,7 @@ services:
       - "6379:6379"
 
   postgres:
-    image: postgres:15
+    image: postgres:16
     container_name: construction_transport_db
     environment:
       POSTGRES_USER: admin
@@ -33,6 +37,21 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: construction_transport_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER:admin
+      - RABBITMQ_DEFAULT_PASS:admin123
 
 volumes:
   postgres_data:
