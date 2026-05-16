@@ -18,9 +18,17 @@ type EventPublisher interface {
 }
 
 type RegisteredUsecase struct {
-	repo            repository.AuthRepository
-	hash_func       PasswordHashFunc
-	event_publisher EventPublisher
+	repo      repository.AuthRepository
+	hash_func PasswordHashFunc
+	// event_publisher EventPublisher
+}
+
+func NewRegisteredUsecase(r repository.AuthRepository, hash_func PasswordHashFunc) *RegisteredUsecase {
+	return &RegisteredUsecase{
+		repo:      r,
+		hash_func: hash_func,
+		// event_publisher: event_publisher,
+	}
 }
 
 func (register_usecase *RegisteredUsecase) Execute(ctx context.Context, input RegisterInput) error {

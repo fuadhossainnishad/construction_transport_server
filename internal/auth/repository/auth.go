@@ -40,8 +40,25 @@ func (r *authRepo) CreateAuth(ctx context.Context, user *domain.AuthUser) error 
 	is_active,
 	is_verified
 	)
-	VALUES ($1,$2,$3,$4,NOW(),NOW(),NOW)
+	VALUES ($1,$2,$3,$4,NOW(),NOW(),NOW(),NOW(),$5,$6,$7)
+	RETURNING id
 	`
+
+	_, err := r.db.Exec(
+		ctx,
+		query,
+		user.Email,
+		user.PasswordHash,
+		user.Role,
+		user.State,
+		user.IsDeleted,
+		user.IsActive,
+		user.IsVerified,
+	)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
