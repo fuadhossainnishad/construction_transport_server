@@ -62,5 +62,19 @@ func main() {
 	authUsecase := usecase.NewRegisteredUsecase(authRepo, hashFunc)
 	authHandler := delivery.NewAuthHandler(authUsecase, nil)
 
+	// after dbClient
+	vehicleRepo := vehicleRepository.NewVehicleRepository(dbClient.Pool)
+	vehicleUsecase := usecase.NewVehicleUsecase(vehicleRepo)
+	vehicleHandler := delivery.NewVehicleHandler(vehicleUsecase)
+
+	bookingRepo := bookingRepository.NewBookingRepository(dbClient.Pool)
+	bookingUsecase := usecase.NewBookingUsecase(bookingRepo, vehicleRepo, eventPublisher)
+	bookingHandler := delivery.NewBookingHandler(bookingUsecase)
+
+	jobUsecase := usecase.NewJobUsecase(bookingRepo, wsHub)
+	jobHandler := delivery.NewJobHandler(jobUsecase)
+
+	// pass all handlers to RegisterRoutes
+
 	v1.RegisterRoutes(router, authHandler)
 }
