@@ -1,11 +1,7 @@
----
-
 ## 🚛 Construction Transport Server
 
 **Event‑driven, real‑time marketplace for trucking & logistics**  
 Built with Go, Gin, PostgreSQL, Redis, RabbitMQ, WebSocket, Stripe Connect.
-
----
 
 ## 📖 Table of Contents
 
