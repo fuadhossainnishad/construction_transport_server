@@ -63,11 +63,13 @@ func main() {
 	authHandler := delivery.NewAuthHandler(authUsecase, nil)
 
 	// Profile
-	profileRepo := profileRepository.NewProfileRepository(dbClient.Pool)
-	profileUsecase := usecase.NewProfileUsecase(profileRepo)
-	profileHandler := delivery.NewProfileHandler(profileUsecase)
+	accountRepo := accountRepository.NewAccountRepository(dbClient.Pool)
+	accountUsecase := usecase.NewAccountUsecase(accountRepo)
+	accountHandler := delivery.NewAccountHandler(accountUsecase)
 
-	// Vehicle (already)
+	// Then pass to RegisterRoutes
+
+	// Vehicle
 	vehicleRepo := vehicleRepository.NewVehicleRepository(dbClient.Pool)
 	vehicleUsecase := usecase.NewVehicleUsecase(vehicleRepo)
 	vehicleHandler := delivery.NewVehicleHandler(vehicleUsecase)
@@ -84,5 +86,5 @@ func main() {
 	jobHandler := delivery.NewJobHandler(jobUsecase)
 
 	// Register all routes
-	v1.RegisterRoutes(router, authHandler, profileHandler, vehicleHandler, bookingHandler, jobHandler, jwtManager)
+	v1.RegisterRoutes(router, authHandler, accountHandler, vehicleHandler, bookingHandler, jobHandler, jwtManager)
 }

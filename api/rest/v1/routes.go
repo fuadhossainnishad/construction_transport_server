@@ -10,7 +10,7 @@ import (
 func RegisterRoutes(
 	router *gin.Engine,
 	authHandler *delivery.AuthHandler,
-	profileHandler *delivery.ProfileHandler,
+	profileHandler *delivery.AccountHandler,
 	vehicleHandler *delivery.VehicleHandler,
 	bookingHandler *delivery.BookingHandler,
 	jobHandler *delivery.JobHandler,
@@ -32,8 +32,8 @@ func RegisterRoutes(
 	api.Use(middleware.AuthMiddleware(jwtManager))
 	{
 		// Profile (any authenticated user)
-		api.GET("/profile", profileHandler.Get)
-		api.PUT("/profile", profileHandler.Update)
+		api.GET("/profile", accountHandler.GetProfile)
+		api.PUT("/profile", accountHandler.UpdateProfile)
 
 		// Vehicles (transporter only)
 		vehicles := api.Group("/vehicles")
