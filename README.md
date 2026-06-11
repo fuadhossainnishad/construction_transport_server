@@ -1,6 +1,6 @@
 ---
 
-# 🚛 Construction Transport Server
+## 🚛 Construction Transport Server
 
 **Event‑driven, real‑time marketplace for trucking & logistics**  
 Built with Go, Gin, PostgreSQL, Redis, RabbitMQ, WebSocket, Stripe Connect.
@@ -86,19 +86,19 @@ Key features:
 
 ## Tech Stack
 
-| Component       | Technology                                |
-|----------------|-------------------------------------------|
-| Language       | Go 1.25+                                  |
-| Web Framework  | Gin                                       |
-| Database       | PostgreSQL 16 (pgxpool)                   |
-| Cache / OTP    | Redis 7                                   |
-| Message Broker | RabbitMQ 3 (with management plugin)       |
-| Real‑time      | Gorilla WebSocket                         |
-| Payments       | Stripe Connect API v79                    |
-| Email          | SMTP (Gmail / any) via RabbitMQ consumer  |
-| Migrations     | Manual SQL (will add tool later)          |
-| Dev tool       | Air (live reload)                         |
-| Container      | Docker + Docker Compose                   |
+| Component      | Technology                               |
+| -------------- | ---------------------------------------- |
+| Language       | Go 1.25+                                 |
+| Web Framework  | Gin                                      |
+| Database       | PostgreSQL 16 (pgxpool)                  |
+| Cache / OTP    | Redis 7                                  |
+| Message Broker | RabbitMQ 3 (with management plugin)      |
+| Real‑time      | Gorilla WebSocket                        |
+| Payments       | Stripe Connect API v79                   |
+| Email          | SMTP (Gmail / any) via RabbitMQ consumer |
+| Migrations     | Manual SQL (will add tool later)         |
+| Dev tool       | Air (live reload)                        |
+| Container      | Docker + Docker Compose                  |
 
 ---
 
@@ -145,14 +145,14 @@ construction_transport_server/
 ### 1. User Registration & OTP Verification
 
 ```
-User → POST /auth/register → DB insert (pending) → RabbitMQ "user.registered" 
+User → POST /auth/register → DB insert (pending) → RabbitMQ "user.registered"
 → email consumer → sends OTP → User POST /auth/verify-otp → email verified.
 ```
 
 ### 2. Create a Booking (Customer)
 
 ```
-Customer (USER) → POST /api/v1/bookings → validate vehicle → create booking (pending) 
+Customer (USER) → POST /api/v1/bookings → validate vehicle → create booking (pending)
 → publish "booking.created" → transporter sees new job in GET /jobs.
 ```
 
@@ -163,6 +163,7 @@ assigned → heading_to_pickup → arrived_at_pickup → loaded → in_transit �
 ```
 
 Each transition:
+
 - Updates DB and timeline
 - Sends WebSocket push to customer
 - Publishes `job.status.updated` event
@@ -179,12 +180,12 @@ Transporter updates status → server pushes JSON message to customer’s WebSoc
 
 All async side effects go through RabbitMQ. **No blocking calls** inside HTTP handlers.
 
-| Event                     | Trigger                             | Consumer Action                     |
-|---------------------------|-------------------------------------|-------------------------------------|
-| `user.registered`         | User signs up                       | Send OTP email via SMTP             |
-| `booking.created`         | Customer creates booking            | Notify transporter (push, SMS)      |
-| `job.status.updated`      | Transporter changes status          | Log analytics, trigger notifications |
-| `job.completed`           | Job reaches `completed`             | Generate invoice, update earnings   |
+| Event                | Trigger                    | Consumer Action                      |
+| -------------------- | -------------------------- | ------------------------------------ |
+| `user.registered`    | User signs up              | Send OTP email via SMTP              |
+| `booking.created`    | Customer creates booking   | Notify transporter (push, SMS)       |
+| `job.status.updated` | Transporter changes status | Log analytics, trigger notifications |
+| `job.completed`      | Job reaches `completed`    | Generate invoice, update earnings    |
 
 Events are published **inside usecases** using an `events.EventPublisher` interface.  
 The RabbitMQ implementation is injected at startup – easy to swap for Kafka or Google Pub/Sub later.
@@ -205,30 +206,30 @@ All endpoints return JSON with consistent structure:
 
 ### Authentication (public)
 
-| Method | Endpoint                     | Description                          |
-|--------|------------------------------|--------------------------------------|
-| POST   | `/auth/register`             | Create account, OTP sent via email   |
-| POST   | `/auth/login`                | Returns access + refresh tokens      |
-| POST   | `/auth/verify-otp`           | Verify email with OTP                |
-| POST   | `/auth/forgot-password`      | Send OTP to reset password           |
-| POST   | `/auth/reset-password`       | Reset password (requires OTP)        |
-| POST   | `/auth/refresh`              | Get new access token                 |
+| Method | Endpoint                | Description                        |
+| ------ | ----------------------- | ---------------------------------- |
+| POST   | `/auth/register`        | Create account, OTP sent via email |
+| POST   | `/auth/login`           | Returns access + refresh tokens    |
+| POST   | `/auth/verify-otp`      | Verify email with OTP              |
+| POST   | `/auth/forgot-password` | Send OTP to reset password         |
+| POST   | `/auth/reset-password`  | Reset password (requires OTP)      |
+| POST   | `/auth/refresh`         | Get new access token               |
 
 ### Authenticated (`/api/v1`)
 
-| Method | Endpoint                | Role         | Description                     |
-|--------|-------------------------|--------------|---------------------------------|
-| GET    | `/profile`              | ANY          | Get own profile                 |
-| PUT    | `/profile`              | ANY          | Update profile                  |
-| POST   | `/vehicles`             | TRANSPORTER  | Add a truck                     |
-| GET    | `/vehicles`             | TRANSPORTER  | List my vehicles                |
-| POST   | `/bookings`             | USER         | Create a booking                |
-| GET    | `/bookings`             | USER         | List my bookings                |
-| GET    | `/bookings/:id`         | USER/ADMIN   | Get booking details             |
-| POST   | `/bookings/:id/cancel`  | USER         | Cancel a pending booking        |
-| GET    | `/jobs`                 | TRANSPORTER  | List assigned jobs              |
-| GET    | `/jobs/:id`             | TRANSPORTER  | Get job details + timeline      |
-| PATCH  | `/jobs/:id/status`      | TRANSPORTER  | Update job status               |
+| Method | Endpoint               | Role        | Description                |
+| ------ | ---------------------- | ----------- | -------------------------- |
+| GET    | `/profile`             | ANY         | Get own profile            |
+| PUT    | `/profile`             | ANY         | Update profile             |
+| POST   | `/vehicles`            | TRANSPORTER | Add a truck                |
+| GET    | `/vehicles`            | TRANSPORTER | List my vehicles           |
+| POST   | `/bookings`            | USER        | Create a booking           |
+| GET    | `/bookings`            | USER        | List my bookings           |
+| GET    | `/bookings/:id`        | USER/ADMIN  | Get booking details        |
+| POST   | `/bookings/:id/cancel` | USER        | Cancel a pending booking   |
+| GET    | `/jobs`                | TRANSPORTER | List assigned jobs         |
+| GET    | `/jobs/:id`            | TRANSPORTER | Get job details + timeline |
+| PATCH  | `/jobs/:id/status`     | TRANSPORTER | Update job status          |
 
 ### WebSocket
 
@@ -280,6 +281,7 @@ docker-compose up --build
 ```
 
 This starts:
+
 - PostgreSQL (port 5432)
 - Redis (6379)
 - RabbitMQ (5672, management UI on 15672)
@@ -305,23 +307,23 @@ You should receive an OTP email (check console logs if SMTP not configured).
 
 ## Environment Variables
 
-| Variable              | Description                               | Default               |
-|-----------------------|-------------------------------------------|-----------------------|
-| `PORT`                | HTTP listen port                          | 8080                  |
-| `DB_HOST`             | PostgreSQL host                           | postgres              |
-| `DB_PORT`             | PostgreSQL port                           | 5432                  |
-| `DB_USER`             | PostgreSQL user                           | admin                 |
-| `DB_PASSWORD`         | PostgreSQL password                       | admin_secret          |
-| `DB_NAME`             | Database name                             | construction_transport|
-| `DB_SSLMODE`          | SSL mode (disable for local)              | disable               |
-| `REDIS_ADDR`          | Redis address                             | redis:6379            |
-| `RABBITMQ_URL`        | RabbitMQ connection URL                   | amqp://guest:guest@rabbitmq:5672/ |
-| `STRIPE_SECRET_KEY`   | Stripe secret key (test/live)             | (required for payouts)|
-| `JWT_SECRET`          | Secret for signing JWT tokens             | (change in prod)      |
-| `SMTP_HOST`           | SMTP server host                          | smtp.gmail.com        |
-| `SMTP_PORT`           | SMTP port                                 | 587                   |
-| `SMTP_FROM`           | Sender email address                      |                       |
-| `SMTP_PASSWORD`       | SMTP password (or app password)           |                       |
+| Variable            | Description                     | Default                           |
+| ------------------- | ------------------------------- | --------------------------------- |
+| `PORT`              | HTTP listen port                | 8080                              |
+| `DB_HOST`           | PostgreSQL host                 | postgres                          |
+| `DB_PORT`           | PostgreSQL port                 | 5432                              |
+| `DB_USER`           | PostgreSQL user                 | admin                             |
+| `DB_PASSWORD`       | PostgreSQL password             | admin_secret                      |
+| `DB_NAME`           | Database name                   | construction_transport            |
+| `DB_SSLMODE`        | SSL mode (disable for local)    | disable                           |
+| `REDIS_ADDR`        | Redis address                   | redis:6379                        |
+| `RABBITMQ_URL`      | RabbitMQ connection URL         | amqp://guest:guest@rabbitmq:5672/ |
+| `STRIPE_SECRET_KEY` | Stripe secret key (test/live)   | (required for payouts)            |
+| `JWT_SECRET`        | Secret for signing JWT tokens   | (change in prod)                  |
+| `SMTP_HOST`         | SMTP server host                | smtp.gmail.com                    |
+| `SMTP_PORT`         | SMTP port                       | 587                               |
+| `SMTP_FROM`         | Sender email address            |                                   |
+| `SMTP_PASSWORD`     | SMTP password (or app password) |                                   |
 
 ---
 
