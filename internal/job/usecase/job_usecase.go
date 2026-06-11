@@ -3,22 +3,38 @@ package usecase
 import (
 	"construction_transport_server/internal/booking/domain"
 	"construction_transport_server/internal/booking/repository"
+	"construction_transport_server/internal/events"
 	"context"
 	"errors"
 	"time"
+
+	"github.com/stripe/stripe-go/v79"
+	"github.com/stripe/stripe-go/v79/transfer"
 )
 
 type JobUsecase struct {
-	bookingRepo repository.BookingRepository
-	wsHub       WebSocketHub
+	bookingRepo  repository.BookingRepository
+	wsHub        WebSocketHub
+	eventPub     events.EventPublisher
+	stripeClient *stripe.Client
 }
 
 type WebSocketHub interface {
 	SendToUser(userID int64, data interface{})
 }
 
-func NewJobUsecase(bookingRepo repository.BookingRepository, wsHub WebSocketHub) *JobUsecase {
-	return &JobUsecase{bookingRepo: bookingRepo, wsHub: wsHub}
+func NewJobUsecase(
+	bookingRepo repository.BookingRepository,
+	wsHub WebSocketHub,
+	eventPub events.EventPublisher,
+	stripeClient *stripe.Client,
+) *JobUsecase {
+	return &JobUsecase{
+		bookingRepo:  bookingRepo,
+		wsHub:        wsHub,
+		eventPub:     eventPub,
+		stripeClient: stripeClient,
+	}
 }
 
 // GetJobDetails returns full job info including timeline
@@ -46,36 +62,63 @@ func (u *JobUsecase) UpdateJobStatus(ctx context.Context, bookingID, transporter
 	if !isValidTransition(b.Status, newStatus) {
 		return errors.New("invalid status transition")
 	}
-	// Update booking status
 	if err := u.bookingRepo.UpdateStatus(ctx, bookingID, newStatus); err != nil {
 		return err
 	}
-	// Add timeline entry
-	if err := u.bookingRepo.AddStatusTimeline(ctx, bookingID, newStatus, notes); err != nil {
-		// log but don't fail
-	}
-	// Real-time notification via WebSocket
+	_ = u.bookingRepo.AddStatusTimeline(ctx, bookingID, newStatus, notes)
+
+	// WebSocket notification to customer
 	go u.wsHub.SendToUser(b.CustomerID, map[string]interface{}{
 		"event":      "job_status_updated",
 		"booking_id": bookingID,
 		"status":     newStatus,
 		"notes":      notes,
 	})
-	// If job completed, trigger payment and review availability
+
+	// Publish status changed event
+	go u.eventPub.Publish(context.Background(), events.JobStatusChangedEvent, events.JobStatusChangedPayload{
+		BookingID: bookingID,
+		Status:    newStatus,
+		Timestamp: time.Now().Unix(),
+	})
+
 	if newStatus == string(domain.StatusCompleted) {
-		go u.completeJob(ctx, bookingID)
+		go u.completeJob(ctx, b)
 	}
 	return nil
 }
 
-func (u *JobUsecase) completeJob(ctx context.Context, bookingID int64) {
-	// Mark completed_at timestamp
+func (u *JobUsecase) completeJob(ctx context.Context, booking *domain.Booking) {
+	// Mark completed_at
 	updates := map[string]interface{}{
 		"completed_at": time.Now(),
 		"status":       domain.StatusCompleted,
 	}
-	_ = u.bookingRepo.Update(ctx, bookingID, updates)
-	// TODO: trigger Stripe payout to transporter
+	_ = u.bookingRepo.Update(ctx, booking.ID, updates)
+
+	// Trigger Stripe transfer to transporter
+	if booking.TotalPrice != nil && booking.TransporterID != nil {
+		// In real scenario, fetch transporter's Stripe account ID from DB
+		stripeAccountID := "acct_xxx"              // retrieve from auth table stripe_account_id
+		amount := int64(*booking.TotalPrice * 100) // cents
+		params := &stripe.TransferParams{
+			Amount:      stripe.Int64(amount),
+			Currency:    stripe.String("usd"),
+			Destination: stripe.String(stripeAccountID),
+		}
+		_, err := transfer.New(params)
+		if err != nil {
+			// log error, maybe retry later
+		}
+	}
+
+	// Publish job completed event for further processing (e.g., review, receipt)
+	_ = u.eventPub.Publish(context.Background(), events.JobCompletedEvent, events.JobCompletedPayload{
+		BookingID:     booking.ID,
+		TransporterID: *booking.TransporterID,
+		CustomerID:    booking.CustomerID,
+		TotalPrice:    *booking.TotalPrice,
+	})
 }
 
 // isValidTransition defines allowed status changes

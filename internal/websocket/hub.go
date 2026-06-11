@@ -8,11 +8,16 @@ import (
 )
 
 type Hub struct {
-	clients    map[int64]map[*websocket.Conn]bool // userID -> connections
-	broadcast  chan []byte
+	clients    map[int64]map[*websocket.Conn]bool
+	broadcast  chan Message
 	register   chan *Client
 	unregister chan *Client
 	mu         sync.RWMutex
+}
+
+type Message struct {
+	UserID int64       `json:"user_id"`
+	Data   interface{} `json:"data"`
 }
 
 type Client struct {
@@ -24,7 +29,7 @@ type Client struct {
 func NewHub() *Hub {
 	return &Hub{
 		clients:    make(map[int64]map[*websocket.Conn]bool),
-		broadcast:  make(chan []byte),
+		broadcast:  make(chan Message),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
@@ -50,17 +55,12 @@ func (h *Hub) Run() {
 			}
 			h.mu.Unlock()
 		case msg := <-h.broadcast:
-			var payload struct {
-				UserID int64 `json:"user_id"`
-				Data   json.RawMessage
-			}
-			if err := json.Unmarshal(msg, &payload); err != nil {
-				continue
-			}
 			h.mu.RLock()
-			conns := h.clients[payload.UserID]
+			conns := h.clients[msg.UserID]
+			data, _ := json.Marshal(msg.Data)
 			for conn := range conns {
-				if err := conn.WriteMessage(websocket.TextMessage, payload.Data); err != nil {
+				err := conn.WriteMessage(websocket.TextMessage, data)
+				if err != nil {
 					conn.Close()
 					delete(conns, conn)
 				}
@@ -71,6 +71,5 @@ func (h *Hub) Run() {
 }
 
 func (h *Hub) SendToUser(userID int64, data interface{}) {
-	msg, _ := json.Marshal(data)
-	h.broadcast <- msg
+	h.broadcast <- Message{UserID: userID, Data: data}
 }

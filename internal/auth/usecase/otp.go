@@ -13,6 +13,10 @@ type OTPService struct {
 	pub   EventPublisher
 }
 
+type EventPublisher interface {
+	PublishUserRegistered(ctx context.Context, email, otp string)
+}
+
 func NewOTPService(store *redis.OTPStore, pub EventPublisher) *OTPService {
 	return &OTPService{store: store, pub: pub}
 }

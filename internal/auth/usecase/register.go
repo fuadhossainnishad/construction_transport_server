@@ -13,40 +13,54 @@ type RegisterInput struct {
 	Role     string
 }
 
-type EventPublisher interface {
-	PublishUserRegistered(ctx context.Context, email string, otp string)
+type PasswordHashFunc interface {
+	Hash(password string) (string, error)
+	Compare(hash, plain string) bool
+}
+
+type OTPServiceInterface interface {
+	GenerateAndSendOTP(ctx context.Context, email string) error
 }
 
 type RegisteredUsecase struct {
-	repo      repository.AuthRepository
-	hash_func PasswordHashFunc
-	// event_publisher EventPublisher
+	repo       repository.AuthRepository
+	hashFunc   PasswordHashFunc
+	otpService OTPServiceInterface
 }
 
-func NewRegisteredUsecase(r repository.AuthRepository, hash_func PasswordHashFunc) *RegisteredUsecase {
+func NewRegisteredUsecase(
+	repo repository.AuthRepository,
+	hashFunc PasswordHashFunc,
+	otpService OTPServiceInterface,
+) *RegisteredUsecase {
 	return &RegisteredUsecase{
-		repo:      r,
-		hash_func: hash_func,
-		// event_publisher: event_publisher,
+		repo:       repo,
+		hashFunc:   hashFunc,
+		otpService: otpService,
 	}
 }
 
-func (register_usecase *RegisteredUsecase) Execute(ctx context.Context, input RegisterInput) error {
-	hashed_password, err := register_usecase.hash_func.Hash(input.Password)
+func (u *RegisteredUsecase) Execute(ctx context.Context, input RegisterInput) error {
+	hashed, err := u.hashFunc.Hash(input.Password)
 	if err != nil {
 		return errors.New("failed to hash password")
 	}
 
 	user := &domain.AuthUser{
 		Email:        input.Email,
-		PasswordHash: hashed_password,
+		PasswordHash: hashed,
 		Role:         domain.Role(input.Role),
 		IsVerified:   false,
+		State:        domain.UserStatePending,
+		IsActive:     true,
 	}
-	err = register_usecase.repo.CreateAuth(ctx, user)
-	if err != nil {
-		return errors.New("Failed to create account, try again later")
+	if err := u.repo.CreateAuth(ctx, user); err != nil {
+		return errors.New("failed to create account")
 	}
 
+	// Send OTP asynchronously via event
+	if err := u.otpService.GenerateAndSendOTP(ctx, input.Email); err != nil {
+		// log but don't fail registration
+	}
 	return nil
 }

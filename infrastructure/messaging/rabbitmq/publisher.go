@@ -2,8 +2,6 @@ package rabbitmq
 
 import (
 	"context"
-	"encoding/json"
-
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -12,28 +10,14 @@ type Publisher struct {
 }
 
 func NewPublisher(ch *amqp.Channel) *Publisher {
-	return &Publisher{
-		ch: ch,
-	}
+	return &Publisher{ch: ch}
 }
 
-type EmailEvent struct {
-	Email string `json:"email"`
-	OTP   string `json:"otp"`
-}
-
-func (p *Publisher) PublishUserRegistered(ctx context.Context, email string, otp string) error {
-	event := EmailEvent{
-		Email: email,
-		OTP:   otp,
-	}
-
-	body, _ := json.Marshal(event)
-
+func (p *Publisher) Publish(ctx context.Context, routingKey string, body []byte) error {
 	return p.ch.PublishWithContext(
 		ctx,
-		"",
-		"user.registered",
+		"",         // exchange
+		routingKey, // routing key = queue name
 		false,
 		false,
 		amqp.Publishing{
