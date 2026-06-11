@@ -35,3 +35,16 @@ func (j *JWTManager) GenerateAccessToken(c Claims) (string, error) {
 
 	return token.SignedString([]byte(j.secret))
 }
+
+func (j *JWTManager) ValidateAccessToken(tokenString string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(j.secret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	}
+	return nil, errors.New("invalid token")
+}
