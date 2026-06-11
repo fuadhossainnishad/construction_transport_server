@@ -4,12 +4,19 @@ import (
 	"construction_transport_server/api/rest/v1/delivery"
 	"construction_transport_server/api/rest/v1/middleware"
 	"construction_transport_server/pkg/utils"
-
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(router *gin.Engine, authHandler *delivery.AuthHandler, vehicleHandler *delivery.VehicleHandler, bookingHandler *delivery.BookingHandler, jobHandler *delivery.JobHandler) {
-	// public routes
+func RegisterRoutes(
+	router *gin.Engine,
+	authHandler *delivery.AuthHandler,
+	profileHandler *delivery.ProfileHandler,
+	vehicleHandler *delivery.VehicleHandler,
+	bookingHandler *delivery.BookingHandler,
+	jobHandler *delivery.JobHandler,
+	jwtManager *utils.JWTManager,
+) {
+	// Public routes
 	auth := router.Group("/auth")
 	{
 		auth.POST("/register", authHandler.Register)
@@ -20,15 +27,15 @@ func RegisterRoutes(router *gin.Engine, authHandler *delivery.AuthHandler, vehic
 		auth.POST("/refresh", authHandler.Refresh)
 	}
 
-	// protected routes
+	// Protected routes
 	api := router.Group("/api/v1")
-	api.Use(middleware.AuthMiddleware(utils.JWTManager))
+	api.Use(middleware.AuthMiddleware(jwtManager))
 	{
-		// profile (to be implemented)
+		// Profile (any authenticated user)
 		api.GET("/profile", profileHandler.Get)
 		api.PUT("/profile", profileHandler.Update)
 
-		// vehicle (transporter only)
+		// Vehicles (transporter only)
 		vehicles := api.Group("/vehicles")
 		vehicles.Use(middleware.RoleMiddleware("TRANSPORTER"))
 		{
@@ -39,7 +46,7 @@ func RegisterRoutes(router *gin.Engine, authHandler *delivery.AuthHandler, vehic
 			vehicles.DELETE("/:id", vehicleHandler.Delete)
 		}
 
-		// bookings (customer)
+		// Bookings (customer only)
 		bookings := api.Group("/bookings")
 		bookings.Use(middleware.RoleMiddleware("USER"))
 		{
@@ -49,11 +56,12 @@ func RegisterRoutes(router *gin.Engine, authHandler *delivery.AuthHandler, vehic
 			bookings.POST("/:id/cancel", bookingHandler.Cancel)
 		}
 
-		// jobs (transporter)
+		// Jobs (transporter only)
 		jobs := api.Group("/jobs")
 		jobs.Use(middleware.RoleMiddleware("TRANSPORTER"))
 		{
 			jobs.GET("/", jobHandler.ListMyJobs)
+			jobs.GET("/:id", jobHandler.GetJobDetails)
 			jobs.PATCH("/:id/status", jobHandler.UpdateStatus)
 		}
 	}

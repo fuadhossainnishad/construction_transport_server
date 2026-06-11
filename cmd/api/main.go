@@ -62,19 +62,27 @@ func main() {
 	authUsecase := usecase.NewRegisteredUsecase(authRepo, hashFunc)
 	authHandler := delivery.NewAuthHandler(authUsecase, nil)
 
-	// after dbClient
+	// Profile
+	profileRepo := profileRepository.NewProfileRepository(dbClient.Pool)
+	profileUsecase := usecase.NewProfileUsecase(profileRepo)
+	profileHandler := delivery.NewProfileHandler(profileUsecase)
+
+	// Vehicle (already)
 	vehicleRepo := vehicleRepository.NewVehicleRepository(dbClient.Pool)
 	vehicleUsecase := usecase.NewVehicleUsecase(vehicleRepo)
 	vehicleHandler := delivery.NewVehicleHandler(vehicleUsecase)
 
+	// Booking
 	bookingRepo := bookingRepository.NewBookingRepository(dbClient.Pool)
 	bookingUsecase := usecase.NewBookingUsecase(bookingRepo, vehicleRepo, eventPublisher)
 	bookingHandler := delivery.NewBookingHandler(bookingUsecase)
 
+	// Job (needs WebSocket hub – implement a simple hub)
+	wsHub := websocket.NewHub()
+	go wsHub.Run()
 	jobUsecase := usecase.NewJobUsecase(bookingRepo, wsHub)
 	jobHandler := delivery.NewJobHandler(jobUsecase)
 
-	// pass all handlers to RegisterRoutes
-
-	v1.RegisterRoutes(router, authHandler)
+	// Register all routes
+	v1.RegisterRoutes(router, authHandler, profileHandler, vehicleHandler, bookingHandler, jobHandler, jwtManager)
 }
